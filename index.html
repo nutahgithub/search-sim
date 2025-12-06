@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Search Số Điện Thoại</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f5f7fa;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 25px;
+}
+
+/* INPUT + BUTTON */
+input[type="text"], input[type="url"], input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 15px 0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: all 0.2s;
+}
+
+input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 3px rgba(0,123,255,0.4);
+}
+
+button {
+    padding: 10px 18px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-right: 6px;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+.button-secondary {
+    background: #6c757d;
+}
+
+.button-secondary:hover {
+    background: #565e64;
+}
+
+/* BẢNG KẾT QUẢ */
+.table-wrapper {
+    margin-top: 25px;
+    max-height: 400px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+table tr:hover {
+    background: #e8f0fe;
+}
+
+td {
+    padding: 10px;
+    border-bottom: 1px solid #e6e6e6;
+    font-size: 15px;
+}
+
+.count-box {
+    background: #007bff;
+    display: inline-block;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+/* LOADING TEXT */
+.loading {
+    margin-top: 10px;
+    font-style: italic;
+    color: #888;
+}
+</style>
+</head>
+<body>
+
+<h2>Filter Number bằng Pattern (*)</h2>
+
+    <label>Link Excel mặc định hoặc nhập link mới:</label>
+    <input type="url" id="excelLink" placeholder="Dán link Excel...">
+
+    <button onclick="loadData()">Load Data</button>
+    <button onclick="clearAll()" class="button-secondary">Clear</button>
+
+    <br>
+    <label>Tìm kiếm:</label>
+    <input type="text" id="pattern" placeholder="Ví dụ: *79, *79*, 12*34" oninput="filter()">
+
+    <div id="countBox" class="count-box" style="display:none;"></div>
+
+    <div class="table-wrapper">
+        <table>
+            <tbody id="result"></tbody>
+        </table>
+    </div>
+
+    <div id="loading" class="loading" style="display:none;">Đang tải dữ liệu...</div>
+
+<script>
+let allNumbers = [];
+
+function formatVND(amount) {
+    if (!amount || isNaN(amount)) return "";
+    return Number(amount).toLocaleString("vi-VN") + " ₫";
+}
+
+// TẢI FILE EXCEL TỪ GOOGLE DRIVE
+async function loadData() {
+    let url = document.getElementById("excelLink").value.trim();
+    if (!url) {
+        url ='https://docs.google.com/spreadsheets/d/1ajGxvwNzifPxsYyybHKK-o4K7KmrWmaM/export?format=xlsx'
+    }
+    try {
+        let res = await fetch(url);
+        let blob = await res.arrayBuffer();
+
+        let workbook = XLSX.read(blob, { type: "array" });
+        let sheet = workbook.Sheets[workbook.SheetNames[0]];
+        let rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        allNumbers = rows
+        .map(r => ({
+                number: r[0],
+                price: r[1]
+            }))
+        .filter(x => x.number !== undefined && x.number !== null);  // lấy cột số điện thoại
+
+        filter();
+    } catch (e) {
+        render(["Không đọc được file"]);
+    }
+}
+
+// SEARCH THEO PATTERN
+function filter() {
+    let p = document.getElementById("pattern").value.trim();
+    if (!p) { render(allNumbers); return; }
+
+    // escape ký tự đặc biệt trong regex
+    let escaped = p.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&');
+
+    // dấu * → bất kỳ chuỗi số nào (0-n số)
+    let regexPattern = escaped.replace(/\*/g, "\\d*");
+
+    // không dùng ^...$ nếu pattern bắt đầu bằng * hoặc kết thúc bằng *
+    let prefix = p.startsWith("*") ? "" : "^";
+    let suffix = p.endsWith("*") ? "" : "$";
+
+    let finalRegex = prefix + regexPattern + suffix;
+    let regex = new RegExp(finalRegex);
+
+    let rs = allNumbers
+        .filter(num => regex.test(num.number));
+
+    render(rs);
+}
+
+// HIỂN THỊ KẾT QUẢ
+function render(list) {
+    let html = "";
+
+    list.forEach(item => {
+        html += `
+            <tr>
+                <td>${item.number}</td>
+                <td style="text-align:right; font-weight:bold; color:#007bff;">
+                    ${formatVND(item.price)}
+                </td>
+            </tr>
+        `;
+    });
+
+    document.getElementById("result").innerHTML = html;
+
+    let countBox = document.getElementById("countBox");
+    countBox.innerText = list.length + " kết quả";
+    countBox.style.display = "inline-block";
+}
+
+window.onload = loadData;
+</script>
+
+</body>
+</html>
