@@ -22,10 +22,10 @@
 }
 
 h2 {
-    text-align: center;
+    /* text-align: center;
     color: #333;
     font-weight: 600;
-    margin-bottom: 25px;
+    margin-bottom: 25px; */
 }
 
 /* INPUT + BUTTON */
@@ -90,10 +90,11 @@ table tr:hover {
     background: #e8f0fe;
 }
 
-td {
+td, th {
     padding: 10px;
     border-bottom: 1px solid #e6e6e6;
     font-size: 15px;
+    text-align: left ;
 }
 
 .count-box {
@@ -112,26 +113,49 @@ td {
     font-style: italic;
     color: #888;
 }
+#header{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    justify-items: center;
+    text-align: center;
+}
+
+#search-area {
+    margin-right: 30px;
+}
+
 </style>
 </head>
 <body>
 
-<h2>Filter Number bằng Pattern (*)</h2>
+    <div id="header">
+        <div style="font-weight: 700; font-size: 20px;">MUA BÁN- TRAO ĐỔI- SIM SỐ ĐẸP</div>
+        <div>(Nguyễn Sang -  0777.387.387)</div>
+    </div>
 
-    <label>Link Excel mặc định hoặc nhập link mới:</label>
-    <input type="url" id="excelLink" placeholder="Dán link Excel...">
+    <div id="search-area">
+        <label>Link Excel mặc định hoặc nhập link mới:</label>
+        <input type="url" id="excelLink" placeholder="Dán link Excel...">
 
-    <button onclick="loadData()">Load Data</button>
-    <button onclick="clearAll()" class="button-secondary">Clear</button>
+        <button onclick="loadData()">Load Data</button>
+        <button onclick="clearAll()" class="button-secondary">Clear</button>
 
-    <br>
-    <label>Tìm kiếm:</label>
-    <input type="text" id="pattern" placeholder="Ví dụ: *79, *79*, 12*34" oninput="filter()">
+        <br>
+        <label>Tìm kiếm:</label>
+        <input type="text" id="pattern" placeholder="Ví dụ: *79, *79*, 12*34" oninput="filter()">
+    </div>
+    
 
     <div id="countBox" class="count-box" style="display:none;"></div>
 
     <div class="table-wrapper">
         <table>
+            <thead>
+                <th>STT</th>
+                <th>Số điện thoại</th>
+                <th>Giá</th>
+            </thead>
             <tbody id="result"></tbody>
         </table>
     </div>
@@ -201,11 +225,12 @@ function filter() {
 function render(list) {
     let html = "";
 
-    list.forEach(item => {
+    list.forEach((item,index) => {
         html += `
             <tr>
+                <td>${index}</td>
                 <td>${item.number}</td>
-                <td style="text-align:right; font-weight:bold; color:#007bff;">
+                <td style="font-weight:bold; color:#007bff;">
                     ${formatVND(item.price)}
                 </td>
             </tr>
